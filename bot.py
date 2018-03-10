@@ -26,14 +26,12 @@ def _get_parser(extra_args):
     return parser
 
 class HangoutsBot:
-
     def __init__(self, token_path):
         self._token_path = token_path
 
         self._client = None # hangups.Client
         self._conv_list = None # hangups.ConversationList
         self._user_list = None # hangups.UserList
-        self._convs = None # [hangups.conversation.Conversation]
 
     def login(self, token_path):
         try:
@@ -73,12 +71,8 @@ class HangoutsBot:
             return
         if isinstance(conv_event, hangups.ChatMessageEvent):
             print('received chat message: {!r}'.format(conv_event.text))
-            self.send_message(
-                conv_event.conversation_id, 
-                hangups.ChatMessageSegment(
-                    'Reeee {}'.format(conv_event.text)
-                )
-            )
+            if conv_event.text == '!purge':
+                await self._remove_user(conv_event.conversation_id, sender.id_.gaia_id)
 
     async def _on_connect(self):
         print('connected')
@@ -89,6 +83,18 @@ class HangoutsBot:
         self._conv_list.on_event.add_observer(self._on_event)
         self._print_convs()
         self._print_users()
+
+    async def _remove_user(self, conv_id, user_gaia_id):
+        conv = self._conv_list.get(conv_id)
+        event_request = conv._get_event_request_header()
+        request = hangups.hangouts_pb2.RemoveUserRequest(
+            request_header=self._client.get_request_header(),
+            participant_id=hangups.hangouts_pb2.ParticipantId(
+                gaia_id=user_gaia_id
+            ),
+            event_request_header=event_request,
+        )
+        await self._client.remove_user(request)
 
     def _print_convs(self):
         conversations = self._conv_list.get_all(include_archived=True)
