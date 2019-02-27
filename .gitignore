@@ -2,3 +2,4 @@ example.py
 .vscode/
 *.png
 *.txt
+.python-version
