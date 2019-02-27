@@ -2,9 +2,11 @@ import argparse
 import asyncio
 import logging
 import os
+import random
 
 import hangups
 import appdirs
+import emoji
 
 
 def _get_parser(extra_args):
@@ -30,6 +32,8 @@ def _get_parser(extra_args):
 class HangoutsBot:
     def __init__(self, token_path):
         self._token_path = token_path
+
+        self._my_gaia = '107450186590987854710'
 
         self._client = None  # hangups.Client
         self._conv_list = None  # hangups.ConversationList
@@ -80,14 +84,38 @@ class HangoutsBot:
     async def _on_message(self, conv_event):
         user = self._user_list.get_user(conv_event.user_id)
         print('{}: {!r}'.format(user.full_name, conv_event.text))
-        key = 'nubba nu'
+        conv_id = conv_event.conversation_id
+
+        if 'emogi' in conv_event.text.lower():
+            self.send_message(conv_id, hangups.ChatMessageSegment(
+                emoji.random_emoji()[0]))
+        # if 'oppress' in conv_event.text.lower():
+        #     for i in range(50):
+        #         await self._set_otr_status(conv_event.conversation_id, (i % 2) + 1)
+
+        #     self.send_message(conv_event.conversation_id,
+        #                       hangups.ChatMessageSegment('okay'))
+        # if conv_event.text == '!!dab':
+            # print(self._get_group_ids(conv_id))
+            # print(self._conv_list._conv_dict)
+            # await self._create_empty_conv(user.id_.gaia_id)
+
+        # key = '!squadup'
+        # if key in conv_event.text.lower():
+        #     await self._purge(conv_id)
+
+        key = 'daniel'
         if key in conv_event.text.lower():
-            await self._purge(conv_event.conversation_id)
+            await self._kick_random(conv_id)
+
         # if len(conv_event.attachments) > 0:
         #     print('{}'.format(conv_event.attachments))
         # await self._send_sticker(conv_event.conversation_id)
+        # if conv_event.text == 'Hi Leo':
+        #     for i in range(100):
+        #         await self._conv_list.get(conv_event.conversation_id).rename("Hi gigolo " + str(i))
         # if conv_event.text == '!music':
-        #     self.send_message(conv_event.conversation_id,
+        #     self.send_message(conv_id,
         #                       hangups.ChatMessageSegment('no'))
         # if conv_event.text == '!arvind':
         #     self.send_message(conv_event.conversation_id,
@@ -104,6 +132,45 @@ class HangoutsBot:
         self._conv_list.on_event.add_observer(self._on_event)
         self._print_convs()
         self._print_users()
+
+    def _get_group_ids(self, conv_id):
+        conv = self._conv_list.get(conv_id)
+        ids = []
+        for user in conv.users:
+            if not user.is_self:
+                ids.append(user.id_.gaia_id)
+        return ids
+
+    async def _create_empty_conv(self, user_gaia_id):
+        request = hangups.hangouts_pb2.CreateConversationRequest(
+            request_header=self._client.get_request_header(),
+            type=hangups.hangouts_pb2.CONVERSATION_TYPE_GROUP,
+            client_generated_id=self._client.get_client_generated_id(),
+            invitee_id=[
+                hangups.hangouts_pb2.InviteeID(
+                    gaia_id=user_gaia_id
+                )
+            ],
+            name='hi'
+        )
+        res = await self._client.create_conversation(request)
+        print(res.conversation)
+
+        _, conv_list = await hangups.build_user_conversation_list(self._client)
+        print(conv_list._conv_dict)
+        print(res.conversation.conversation_id.id)
+
+        request = hangups.hangouts_pb2.GetConversationRequest(
+            request_header=self._client.get_request_header(),
+            conversation_spec=hangups.hangouts_pb2.ConversationSpec(
+                conversation_id=res.conversation.conversation_id
+            ),
+        )
+        res = await self._client.get_conversation(request)
+        print(res.conversation_state)
+
+        # await self.send_message(res.conversation.conversation_id,
+        # hangups.ChatMessageSegment('asdf'))
 
     async def _send_sticker(self, conv_id):
         conv = self._conv_list.get(conv_id)
@@ -130,6 +197,18 @@ class HangoutsBot:
             image_file, return_uploaded_image=True
         )
         return uploaded_image
+        
+
+    async def _add_user(self, conv_id, user_gaia_id):
+        conv = self._conv_list.get(conv_id)
+        request = hangups.hangouts_pb2.AddUserRequest(
+            request_header=self._client.get_request_header(),
+            event_request_header=conv._get_event_request_header(),
+            invitee_id=hangups.hangouts_pb2.InviteeID(
+                gaia_id=user_gaia_id,
+            )
+        )
+        await self._client.add_user(request)
 
     async def _remove_user(self, conv_id, user_gaia_id):
         conv = self._conv_list.get(conv_id)
@@ -142,12 +221,29 @@ class HangoutsBot:
         )
         await self._client.remove_user(request)
 
+    async def _set_otr_status(self, conv_id, status):
+        conv = self._conv_list.get(conv_id)
+        request = hangups.hangouts_pb2.ModifyOTRStatusRequest(
+            request_header=self._client.get_request_header(),
+            event_request_header=conv._get_event_request_header(),
+            otr_status=status
+        )
+        await self._client.modify_otr_status(request)
+
     async def _purge(self, conv_id):
         conv = self._conv_list.get(conv_id)
         for user in conv.users:
             if not user.is_self:
                 await self._remove_user(conv_id, user.id_.gaia_id)
         await self._conv_list.leave_conversation(conv_id)
+
+    async def _kick_random(self, conv_id):
+        conv = self._conv_list.get(conv_id)
+        user = random.choice(conv.users)
+        while user.is_self:
+            user = random.choice(conv.users)
+        await self._remove_user(conv_id, user.id_.gaia_id)
+    
 
     def _print_convs(self):
         conversations = self._conv_list.get_all(include_archived=True)
