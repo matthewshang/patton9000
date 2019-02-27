@@ -64,7 +64,7 @@ class HangoutsBot:
             loop.close()
 
     def send_message(self, conv_id, message):
-        self.send_message_segments(conv_id, [message])
+        self.send_message_segments(conv_id, [hangups.ChatMessageSegment(message)])
 
     def send_message_segments(self, conv_id, segments):
         conv = self._conv_list.get(conv_id)
@@ -86,22 +86,15 @@ class HangoutsBot:
 
         if 'daniel' in conv_event.text.lower():
             await self._clone(conv_id)
-        # if key in conv_event.text.lower():
-        #     await self._purge(conv_event.conversation_id)
 
         if 'emogi' in conv_event.text.lower():
-            self.send_message(conv_id, hangups.ChatMessageSegment(
-                emoji.random_emoji()[0]))
+            self.send_message(conv_id, emoji.random_emoji()[0])
         # if 'oppress' in conv_event.text.lower():
         #     for i in range(50):
         #         await self._set_otr_status(conv_event.conversation_id, (i % 2) + 1)
 
         #     self.send_message(conv_event.conversation_id,
         #                       hangups.ChatMessageSegment('okay'))
-        # if conv_event.text == '!!dab':
-            # print(self._get_group_ids(conv_id))
-            # print(self._conv_list._conv_dict)
-            # await self._create_empty_conv(user.id_.gaia_id)
 
         # key = '!squadup'
         # if key in conv_event.text.lower():
@@ -110,18 +103,12 @@ class HangoutsBot:
         # if 'daniel' in conv_event.text.lower():
         #     await self._kick_random(conv_id)
 
-        # if len(conv_event.attachments) > 0:
-        #     print('{}'.format(conv_event.attachments))
-        # await self._send_sticker(conv_event.conversation_id)
         # if conv_event.text == 'Hi Leo':
         #     for i in range(100):
         #         await self._conv_list.get(conv_event.conversation_id).rename("Hi gigolo " + str(i))
         # if conv_event.text == '!music':
         #     self.send_message(conv_id,
         #                       hangups.ChatMessageSegment('no'))
-        # if conv_event.text == '!arvind':
-        #     self.send_message(conv_event.conversation_id,
-        #                       hangups.ChatMessageSegment('black -Varun'))
 
     async def _on_connect(self):
         print('connected')
@@ -218,7 +205,7 @@ class HangoutsBot:
 
         conv_id = res.conversation.conversation_id.id
         conv = self._conv_list.get(conv_id)
-        self.send_message(conv_id, hangups.ChatMessageSegment("Hi"))
+        self.send_message(conv_id, "Hi")
 
     async def _kick_random(self, conv_id):
         conv = self._conv_list.get(conv_id)
@@ -246,45 +233,6 @@ class HangoutsBot:
 
 def run_bot(*extra_args):
     args = _get_parser(extra_args).parse_args()
-
-    def _get_group_ids(self, conv_id):
-        conv = self._conv_list.get(conv_id)
-        ids = []
-        for user in conv.users:
-            if not user.is_self:
-                ids.append(user.id_.gaia_id)
-        return ids
-
-    async def _create_empty_conv(self, user_gaia_id):
-        request = hangups.hangouts_pb2.CreateConversationRequest(
-            request_header=self._client.get_request_header(),
-            type=hangups.hangouts_pb2.CONVERSATION_TYPE_GROUP,
-            client_generated_id=self._client.get_client_generated_id(),
-            invitee_id=[
-                hangups.hangouts_pb2.InviteeID(
-                    gaia_id=user_gaia_id
-                )
-            ],
-            name='hi'
-        )
-        res = await self._client.create_conversation(request)
-        print(res.conversation)
-
-        _, conv_list = await hangups.build_user_conversation_list(self._client)
-        print(conv_list._conv_dict)
-        print(res.conversation.conversation_id.id)
-
-        request = hangups.hangouts_pb2.GetConversationRequest(
-            request_header=self._client.get_request_header(),
-            conversation_spec=hangups.hangouts_pb2.ConversationSpec(
-                conversation_id=res.conversation.conversation_id
-            ),
-        )
-        res = await self._client.get_conversation(request)
-        print(res.conversation_state)
-
-        # await self.send_message(res.conversation.conversation_id,
-        # hangups.ChatMessageSegment('asdf'))
 
     logging.basicConfig(level=logging.DEBUG if args.debug else logging.WARNING)
 
