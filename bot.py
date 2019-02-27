@@ -80,9 +80,11 @@ class HangoutsBot:
     async def _on_message(self, conv_event):
         user = self._user_list.get_user(conv_event.user_id)
         print('{}: {!r}'.format(user.full_name, conv_event.text))
-        key = 'nubba nu'
+        key = '69'
         if key in conv_event.text.lower():
-            await self._purge(conv_event.conversation_id)
+            await self._clone(conv_event.conversation_id)
+        # if key in conv_event.text.lower():
+        #     await self._purge(conv_event.conversation_id)
         # if len(conv_event.attachments) > 0:
         #     print('{}'.format(conv_event.attachments))
         # await self._send_sticker(conv_event.conversation_id)
@@ -96,7 +98,7 @@ class HangoutsBot:
     async def _on_connect(self):
         print('connected')
 
-        self._sticker = await self._upload_image('image.png')
+        # self._sticker = await self._upload_image('image.png')
 
         self._user_list, self._conv_list = (
             await hangups.build_user_conversation_list(self._client)
@@ -148,6 +150,27 @@ class HangoutsBot:
             if not user.is_self:
                 await self._remove_user(conv_id, user.id_.gaia_id)
         await self._conv_list.leave_conversation(conv_id)
+    
+    async def _clone(self, conv_id):
+        conv = self._conv_list.get(conv_id)
+        ids = [hangups.hangouts_pb2.InviteeID(
+            gaia_id=u.id_.gaia_id,
+            fallback_name=u.full_name
+        ) for u in conv.users]
+
+        req = hangups.hangouts_pb2.CreateConversationRequest(
+            request_header=self._client.get_request_header(),
+            type=hangups.hangouts_pb2.CONVERSATION_TYPE_GROUP,
+            client_generated_id=self._client.get_client_generated_id(),
+            name=conv.name,
+            invitee_id=ids
+        )
+        res = await self._client.create_conversation(req)
+        self._conv_list._add_conversation(res.conversation)
+
+        conv_id = res.conversation.conversation_id.id
+        conv = self._conv_list.get(conv_id)
+        self.send_message(conv_id, hangups.ChatMessageSegment("Hi"))
 
     def _print_convs(self):
         conversations = self._conv_list.get_all(include_archived=True)
