@@ -1,32 +1,9 @@
-import argparse
 import asyncio
 import logging
-import os
 import random
 
-import hangups
-import appdirs
 import emoji
-
-
-def _get_parser(extra_args):
-    """Return ArgumentParser with any extra arguments."""
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-    )
-    dirs = appdirs.AppDirs('hangups', 'hangups')
-    default_token_path = os.path.join(dirs.user_cache_dir, 'refresh_token.txt')
-    parser.add_argument(
-        '--token-path', default=default_token_path,
-        help='path used to store OAuth refresh token'
-    )
-    parser.add_argument(
-        '-d', '--debug', action='store_true',
-        help='log detailed debugging messages'
-    )
-    for extra_arg in extra_args:
-        parser.add_argument(extra_arg, required=True)
-    return parser
+import hangups
 
 
 class HangoutsBot:
@@ -64,13 +41,12 @@ class HangoutsBot:
             loop.close()
 
     def send_message(self, conv_id, message):
-        self.send_message_segments(conv_id, [hangups.ChatMessageSegment(message)])
+        self.send_message_segments(conv_id,
+                                   [hangups.ChatMessageSegment(message)])
 
     def send_message_segments(self, conv_id, segments):
         conv = self._conv_list.get(conv_id)
-        asyncio.ensure_future(
-            conv.send_message(segments)
-        )
+        asyncio.ensure_future(conv.send_message(segments))
 
     async def _on_event(self, conv_event):
         sender = self._user_list.get_user(conv_event.user_id)
@@ -116,36 +92,29 @@ class HangoutsBot:
         # self._sticker = await self._upload_image('image.png')
 
         self._user_list, self._conv_list = (
-            await hangups.build_user_conversation_list(self._client)
-        )
+            await hangups.build_user_conversation_list(self._client))
         self._conv_list.on_event.add_observer(self._on_event)
         self._print_convs()
         self._print_users()
 
     async def _send_sticker(self, conv_id):
-        conv = self._conv_list.get(conv_id)
         request = hangups.hangouts_pb2.SendChatMessageRequest(
             request_header=self._client.get_request_header(),
             event_request_header=hangups.hangouts_pb2.EventRequestHeader(
                 conversation_id=hangups.hangouts_pb2.ConversationId(
-                    id=conv_id
-                ),
+                    id=conv_id),
                 client_generated_id=self._client.get_client_generated_id(),
             ),
             existing_media=hangups.hangouts_pb2.ExistingMedia(
                 photo=hangups.hangouts_pb2.Photo(
-                    photo_id=self._sticker.image_id
-                )
-            )
-        )
+                    photo_id=self._sticker.image_id)))
 
         await self._client.send_chat_message(request)
 
     async def _upload_image(self, file):
         image_file = open(file, 'rb')
         uploaded_image = await self._client.upload_image(
-            image_file, return_uploaded_image=True
-        )
+            image_file, return_uploaded_image=True)
         return uploaded_image
 
     async def _add_user(self, conv_id, user_gaia_id):
@@ -153,10 +122,7 @@ class HangoutsBot:
         request = hangups.hangouts_pb2.AddUserRequest(
             request_header=self._client.get_request_header(),
             event_request_header=conv._get_event_request_header(),
-            invitee_id=hangups.hangouts_pb2.InviteeID(
-                gaia_id=user_gaia_id,
-            )
-        )
+            invitee_id=hangups.hangouts_pb2.InviteeID(gaia_id=user_gaia_id, ))
         await self._client.add_user(request)
 
     async def _remove_user(self, conv_id, user_gaia_id):
@@ -165,8 +131,7 @@ class HangoutsBot:
             request_header=self._client.get_request_header(),
             event_request_header=conv._get_event_request_header(),
             participant_id=hangups.hangouts_pb2.ParticipantId(
-                gaia_id=user_gaia_id
-            ),
+                gaia_id=user_gaia_id),
         )
         await self._client.remove_user(request)
 
@@ -175,8 +140,7 @@ class HangoutsBot:
         request = hangups.hangouts_pb2.ModifyOTRStatusRequest(
             request_header=self._client.get_request_header(),
             event_request_header=conv._get_event_request_header(),
-            otr_status=status
-        )
+            otr_status=status)
         await self._client.modify_otr_status(request)
 
     async def _purge(self, conv_id):
@@ -188,18 +152,18 @@ class HangoutsBot:
 
     async def _clone(self, conv_id):
         conv = self._conv_list.get(conv_id)
-        ids = [hangups.hangouts_pb2.InviteeID(
-            gaia_id=u.id_.gaia_id,
-            fallback_name=u.full_name
-        ) for u in conv.users]
+        ids = [
+            hangups.hangouts_pb2.InviteeID(
+                gaia_id=u.id_.gaia_id, fallback_name=u.full_name)
+            for u in conv.users
+        ]
 
         req = hangups.hangouts_pb2.CreateConversationRequest(
             request_header=self._client.get_request_header(),
             type=hangups.hangouts_pb2.CONVERSATION_TYPE_GROUP,
             client_generated_id=self._client.get_client_generated_id(),
             name=conv.name,
-            invitee_id=ids
-        )
+            invitee_id=ids)
         res = await self._client.create_conversation(req)
         self._conv_list._add_conversation(res.conversation)
 
@@ -229,16 +193,3 @@ class HangoutsBot:
         print('{} known users'.format(len(users)))
         for user in users:
             print('    {}'.format(user.full_name))
-
-
-def run_bot(*extra_args):
-    args = _get_parser(extra_args).parse_args()
-
-    logging.basicConfig(level=logging.DEBUG if args.debug else logging.WARNING)
-
-    bot = HangoutsBot(args.token_path)
-    bot.run()
-
-
-if __name__ == '__main__':
-    run_bot()
