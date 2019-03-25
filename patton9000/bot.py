@@ -65,6 +65,7 @@ class HangoutsBot:
 
         if 'emogi' in conv_event.text.lower():
             self.send_message(conv_id, emoji.random_emoji()[0])
+
         # if 'oppress' in conv_event.text.lower():
         #     for i in range(50):
         #         await self._set_otr_status(conv_event.conversation_id, (i % 2) + 1)
@@ -88,34 +89,11 @@ class HangoutsBot:
 
     async def _on_connect(self):
         print('connected')
-
-        # self._sticker = await self._upload_image('image.png')
-
         self._user_list, self._conv_list = (
             await hangups.build_user_conversation_list(self._client))
         self._conv_list.on_event.add_observer(self._on_event)
         self._print_convs()
         self._print_users()
-
-    async def _send_sticker(self, conv_id):
-        request = hangups.hangouts_pb2.SendChatMessageRequest(
-            request_header=self._client.get_request_header(),
-            event_request_header=hangups.hangouts_pb2.EventRequestHeader(
-                conversation_id=hangups.hangouts_pb2.ConversationId(
-                    id=conv_id),
-                client_generated_id=self._client.get_client_generated_id(),
-            ),
-            existing_media=hangups.hangouts_pb2.ExistingMedia(
-                photo=hangups.hangouts_pb2.Photo(
-                    photo_id=self._sticker.image_id)))
-
-        await self._client.send_chat_message(request)
-
-    async def _upload_image(self, file):
-        image_file = open(file, 'rb')
-        uploaded_image = await self._client.upload_image(
-            image_file, return_uploaded_image=True)
-        return uploaded_image
 
     async def _add_user(self, conv_id, user_gaia_id):
         conv = self._conv_list.get(conv_id)
