@@ -5,6 +5,8 @@ from typing import Dict, Optional
 
 import emoji
 import hangups
+from handler import Handler
+from handlers import CommandHandler
 
 
 class HangoutsBot:
@@ -12,6 +14,7 @@ class HangoutsBot:
     _client: hangups.Client
     _conv_list: hangups.ConversationList
     _user_list: hangups.UserList
+    _handlers: [Handler]
 
     def __init__(self, token_path: str) -> None:
         self._token_path = token_path
@@ -31,6 +34,10 @@ class HangoutsBot:
         cookies = self.login(self._token_path)
         self._client = hangups.Client(cookies)
         self._client.on_connect.add_observer(self._on_connect)
+        self._handlers = [
+            CommandHandler(self)
+        ]
+
         loop = asyncio.get_event_loop()
 
         task = asyncio.ensure_future(self._client.connect())
@@ -55,8 +62,14 @@ class HangoutsBot:
         sender = self._user_list.get_user(conv_event.user_id)
         if sender.is_self:
             return
-        if isinstance(conv_event, hangups.ChatMessageEvent):
-            await self._on_message(conv_event)
+        # Develop mode: don't trigger in other chats
+        conv = self._conv_list.get(conv_event.conversation_id)
+        print(len(conv.users))
+        if len(conv.users) > 2:
+            return
+
+        for h in self._handlers:
+            await h.on_event(conv_event)
 
     async def _on_message(self, conv_event):
         conv_id = conv_event.conversation_id
