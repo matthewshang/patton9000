@@ -6,7 +6,7 @@ from typing import Dict, Optional
 import emoji
 import hangups
 from handler import Handler
-from handlers import CommandHandler
+from handlers import CommandHandler, AlienHandler, LogHandler
 
 
 class HangoutsBot:
@@ -35,7 +35,9 @@ class HangoutsBot:
         self._client = hangups.Client(cookies)
         self._client.on_connect.add_observer(self._on_connect)
         self._handlers = [
-            CommandHandler(self)
+            # CommandHandler(self),
+            LogHandler(self),
+            AlienHandler(self)
         ]
 
         loop = asyncio.get_event_loop()
@@ -63,10 +65,9 @@ class HangoutsBot:
         if sender.is_self:
             return
         # Develop mode: don't trigger in other chats
-        conv = self._conv_list.get(conv_event.conversation_id)
-        print(len(conv.users))
-        if len(conv.users) > 2:
-            return
+        # conv = self._conv_list.get(conv_event.conversation_id)
+        # if len(conv.users) > 2:
+        #     return
 
         for h in self._handlers:
             await h.on_event(conv_event)
