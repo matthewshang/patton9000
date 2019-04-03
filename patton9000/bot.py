@@ -5,8 +5,10 @@ from typing import Dict, Optional
 
 import emoji
 import hangups
+import scheduler
+from lyric import PeriodicLyric
 from handler import Handler
-from handlers import CommandHandler, AlienHandler, LogHandler
+from handlers import AlienHandler, CommandHandler, LogHandler
 
 
 class HangoutsBot:
@@ -41,6 +43,11 @@ class HangoutsBot:
         ]
 
         loop = asyncio.get_event_loop()
+        loop.set_debug(True)
+
+        # schedule = scheduler.create_scheduler(loop)
+        # lyric = PeriodicLyric(self, loop)
+        # lyric_task = schedule(lyric, interval=5)
 
         task = asyncio.ensure_future(self._client.connect())
 
@@ -49,6 +56,7 @@ class HangoutsBot:
         except KeyboardInterrupt:
             task.cancel()
             loop.run_until_complete(task)
+            # lyric_task.cancel()
         finally:
             loop.close()
 
@@ -65,9 +73,9 @@ class HangoutsBot:
         if sender.is_self:
             return
         # Develop mode: don't trigger in other chats
-        # conv = self._conv_list.get(conv_event.conversation_id)
-        # if len(conv.users) > 2:
-        #     return
+        conv = self._conv_list.get(conv_event.conversation_id)
+        if len(conv.users) > 2:
+            return
 
         for h in self._handlers:
             await h.on_event(conv_event)
