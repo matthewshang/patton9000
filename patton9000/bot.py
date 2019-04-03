@@ -48,7 +48,7 @@ class HangoutsBot:
 
         schedule = scheduler.create_scheduler(loop)
         lyric = PeriodicLyric(self, loop)
-        lyric_task = schedule(lyric, interval=5)
+        lyric_task = schedule(lyric, interval=3600)
 
         task = asyncio.ensure_future(self._client.connect())
 
