@@ -1,5 +1,6 @@
 import argparse
 import logging
+import logging.config
 import os
 
 import appdirs
@@ -25,7 +26,7 @@ def main():
         help='log detailed debugging messages')
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.DEBUG if args.debug else logging.WARNING)
+    logging.config.fileConfig(fname='log.conf', disable_existing_loggers=False)
 
     bot = HangoutsBot(args.token_path)
     bot.run()

@@ -1,4 +1,5 @@
 import hangups
+import logging
 from handler import Handler
 
 
@@ -11,6 +12,5 @@ class LogHandler(Handler):
             return
         sender = self._bot._user_list.get_user(event.user_id)
         conv = self._bot._conv_list.get(event.conversation_id)
-        print(
-            f'{event.timestamp} - {sender.full_name} in {conv.name}: {event.text}'
-        )
+        name = sender.full_name if not conv.name else conv.name
+        logging.info(f'{sender.full_name} to "{name}": {event.text}')

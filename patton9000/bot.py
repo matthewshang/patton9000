@@ -6,9 +6,9 @@ from typing import Dict, Optional
 import emoji
 import hangups
 import scheduler
-from lyric import PeriodicLyric
 from handler import Handler
 from handlers import AlienHandler, CommandHandler, LogHandler
+from lyric import PeriodicLyric
 
 
 class HangoutsBot:
@@ -61,12 +61,10 @@ class HangoutsBot:
             loop.close()
 
     def send_message(self, conv_id: str, message: str) -> None:
-        self.send_message_segments(conv_id,
-                                   [hangups.ChatMessageSegment(message)])
-
-    def send_message_segments(self, conv_id: str, segments) -> None:
         conv = self._conv_list.get(conv_id)
-        asyncio.ensure_future(conv.send_message(segments))
+        name = conv.users[0].full_name if not conv.name else conv.name
+        logging.info(f'sent "{message}" to "{name}"')
+        asyncio.ensure_future(conv.send_message([hangups.ChatMessageSegment(message)]))
 
     async def _on_event(self, conv_event: hangups.ConversationEvent) -> None:
         sender = self._user_list.get_user(conv_event.user_id)
@@ -113,7 +111,7 @@ class HangoutsBot:
         #                       hangups.ChatMessageSegment('no'))
 
     async def _on_connect(self) -> None:
-        print('connected')
+        logging.info('Connected to Hangouts!')
         self._user_list, self._conv_list = (
             await hangups.build_user_conversation_list(self._client))
         self._conv_list.on_event.add_observer(self._on_event)
@@ -182,17 +180,13 @@ class HangoutsBot:
         await self._remove_user(conv_id, user.id_.gaia_id)
 
     def _print_convs(self) -> None:
-        conversations = self._conv_list.get_all(include_archived=True)
-        print('{} known conversations'.format(len(conversations)))
-        for conversation in conversations:
-            if conversation.name:
-                name = conversation.name
-            else:
-                name = 'Unnamed conversation ({})'.format(conversation.id_)
-            print('    {}'.format(name))
+        convs = self._conv_list.get_all(include_archived=True)
+        logging.info(f'Access to {len(convs)} conversations')
+        for conv in convs:
+            logging.debug('conv: ' + (conv.name if conv.name else f'id: {conv.id_}'))
 
     def _print_users(self) -> None:
         users = self._user_list.get_all()
-        print('{} known users'.format(len(users)))
+        logging.info(f'{len(users)} known users')
         for user in users:
-            print('    {}'.format(user.full_name))
+            logging.debug(f'user: {user.full_name}')
