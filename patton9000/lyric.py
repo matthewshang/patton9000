@@ -1,3 +1,6 @@
+import logging
+
+from console_args import CONSOLE_ARGS
 
 
 class PeriodicLyric:
@@ -11,6 +14,8 @@ class PeriodicLyric:
     async def __call__(self):
         lyric = next(self.it)
         for conv in self.bot._conv_list.get_all():
-            if len(conv.users) == 2:
+            if CONSOLE_ARGS.dev_mode:
+                if len(conv.users) == 2:
+                    self.bot.send_message(conv.id_, lyric)
+            elif len(conv.users) > 30:
                 self.bot.send_message(conv.id_, lyric)
-            print(f'sent {lyric} to {conv.name}')
