@@ -1,4 +1,6 @@
+import logging
 import random
+import string
 
 import hangups
 from handler import Handler
@@ -15,7 +17,7 @@ class AlienHandler(Handler):
     def _send(self, conv_id, msg) -> None:
         self._bot.send_message(conv_id, msg)
 
-    def _respond(self, tokens: [str], conv_id, sender):
+    def _respond(self, text: str, tokens: [str], conv_id, sender):
 
         def has(txt, keys):
             for key in keys:
@@ -29,8 +31,9 @@ class AlienHandler(Handler):
             return self._send(conv_id, f'Hi {sender.first_name}')
 
         choices = ['Yes', 'Affirmative', 'No', 'Negatory', 'Maybe', 'Perhaps']
+        qs = ['should', 'will', 'can', 'do', 'are', 'is', 'did']
         # Greater than three so 'alien tami will' is invalid
-        if len(tokens) > 3 and has(tokens, ['should', 'will', 'can', 'do', 'are']):
+        if len(tokens) > 3 and has(tokens, qs):
             return self._send(conv_id, random.choice(choices))
 
     def _check_sender(self, sender) -> bool:
@@ -51,6 +54,9 @@ class AlienHandler(Handler):
         text: str = event.text.lower()
         sender = self._bot._user_list.get_user(event.user_id)
         if 'alien tami' in text and self._check_sender(sender):
-            conv_id = event.conversation_id
+            text = text.replace('alien tami', '')
+            text = text.translate(str.maketrans('', '', string.punctuation))
+            text = text.strip()
             tokens = text.split(' ')
-            self._respond(tokens, conv_id, sender)
+            logging.debug(f'processed: {tokens}')
+            self._respond(tokens, text, event.conversation_id, sender)

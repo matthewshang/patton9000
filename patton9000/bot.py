@@ -38,7 +38,7 @@ class HangoutsBot:
         self._client = hangups.Client(cookies)
         self._client.on_connect.add_observer(self._on_connect)
         self._handlers = [
-            # CommandHandler(self),
+            CommandHandler(self),
             LogHandler(self),
             AlienHandler(self)
         ]

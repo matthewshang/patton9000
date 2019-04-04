@@ -1,3 +1,4 @@
+from emoji import random_emoji
 import hangups
 from handler import Handler
 
@@ -9,4 +10,10 @@ class CommandHandler(Handler):
     async def on_event(self, event: hangups.ConversationEvent) -> None:
         if not isinstance(event, hangups.ChatMessageEvent):
             return
-        self._bot.send_message(event.conversation_id, 'This is a test')
+
+        text: str = event.text.lower()
+        if '👽' in text:
+            res = ''
+            for _ in range(text.count('👽')):
+                res += random_emoji()
+            return self._bot.send_message(event.conversation_id, res)

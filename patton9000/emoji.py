@@ -10,8 +10,10 @@ Generates a random emoji for python2 and python3.
 'LICENSE': "GPLv3",
 }
 
-import sys, random
-import unicodedata2 # install with pip, using this as it has an updated db
+import random
+import sys
+
+import unicodedata2  # install with pip, using this as it has an updated db
 
 # print(unicodedata2.unidata_version)
 UNICODE_VERSION = 6
@@ -67,20 +69,13 @@ else:
 # build emoji table to take random from
 emojis = []
 for r in emoji_ranges:
-  emojis += range( r[0], r[-1] )
+    emojis += range(r[0], r[-1])
 
 # returns a random emoji (char value, doule escaped value, unicode name)
 def random_emoji():
     emoji_decimal = random.choice(emojis)
     emoji_escaped = b"\\U%08x" % emoji_decimal
     emoji_char = emoji_escaped.decode('unicode-escape') # python2 work-around is to decode with unicode-escape
-    emoji_name = unicodedata2.name(emoji_char, NO_NAME_ERROR).capitalize()
-    return(emoji_char, emoji_escaped, emoji_name)
-
-if __name__ == "__main__":
-    emoji = random_emoji()
-    print( 
-           emoji[0].encode(sys.stdout.encoding, errors='replace'), # just replacing errors with ? because some consoles (win) can't print the emoji
-           emoji[1],
-           emoji[2] 
-        ) 
+    # emoji_name = unicodedata2.name(emoji_char, NO_NAME_ERROR).capitalize()
+    # return(emoji_char, emoji_escaped, emoji_name)
+    return emoji_char
