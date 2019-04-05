@@ -62,18 +62,18 @@ class HangoutsBot:
             loop.close()
 
     def send_message(self, conv_id: str, message: str) -> None:
-        conv = self._conv_list.get(conv_id)
+        conv = self.get_conv(conv_id)
         name = conv.users[0].full_name if not conv.name else conv.name
         logging.info(f'sent "{message}" to "{name}"')
         asyncio.ensure_future(conv.send_message([hangups.ChatMessageSegment(message)]))
 
     async def _on_event(self, conv_event: hangups.ConversationEvent) -> None:
-        sender = self._user_list.get_user(conv_event.user_id)
+        sender = self.get_user(conv_event.user_id)
         if sender.is_self:
             return
         # Develop mode: don't trigger in other chats
         if CONSOLE_ARGS.dev_mode:
-            conv = self._conv_list.get(conv_event.conversation_id)
+            conv = self.get_conv(conv_event.conversation_id)
             if len(conv.users) > 2 or sender.first_name != 'Matthew':
                 return
 
@@ -121,7 +121,7 @@ class HangoutsBot:
         self._print_users()
 
     async def _add_user(self, conv_id: str, user_gaia_id: str) -> None:
-        conv = self._conv_list.get(conv_id)
+        conv = self.get_conv(conv_id)
         request = hangups.hangouts_pb2.AddUserRequest(
             request_header=self._client.get_request_header(),
             event_request_header=conv._get_event_request_header(),
@@ -129,7 +129,7 @@ class HangoutsBot:
         await self._client.add_user(request)
 
     async def _remove_user(self, conv_id: str, user_gaia_id: str) -> None:
-        conv = self._conv_list.get(conv_id)
+        conv = self.get_conv(conv_id)
         request = hangups.hangouts_pb2.RemoveUserRequest(
             request_header=self._client.get_request_header(),
             event_request_header=conv._get_event_request_header(),
@@ -139,7 +139,7 @@ class HangoutsBot:
         await self._client.remove_user(request)
 
     async def _set_otr_status(self, conv_id: str, status: int) -> None:
-        conv = self._conv_list.get(conv_id)
+        conv = self.get_conv(conv_id)
         request = hangups.hangouts_pb2.ModifyOTRStatusRequest(
             request_header=self._client.get_request_header(),
             event_request_header=conv._get_event_request_header(),
@@ -147,14 +147,14 @@ class HangoutsBot:
         await self._client.modify_otr_status(request)
 
     async def _purge(self, conv_id: str) -> None:
-        conv = self._conv_list.get(conv_id)
+        conv = self.get_conv(conv_id)
         for user in conv.users:
             if not user.is_self:
                 await self._remove_user(conv_id, user.id_.gaia_id)
         await self._conv_list.leave_conversation(conv_id)
 
     async def _clone(self, conv_id: str) -> None:
-        conv = self._conv_list.get(conv_id)
+        conv = self.get_conv(conv_id)
         ids = [
             hangups.hangouts_pb2.InviteeID(
                 gaia_id=u.id_.gaia_id, fallback_name=u.full_name)
@@ -171,15 +171,24 @@ class HangoutsBot:
         self._conv_list._add_conversation(res.conversation)
 
         conv_id = res.conversation.conversation_id.id
-        conv = self._conv_list.get(conv_id)
         self.send_message(conv_id, "Hi")
 
     async def _kick_random(self, conv_id: str) -> None:
-        conv = self._conv_list.get(conv_id)
+        user = self.get_random_user(conv_id)
+        await self._remove_user(conv_id, user.id_.gaia_id)
+
+    def get_conv(self, conv_id: str) -> hangups.conversation.Conversation:
+        return self._conv_list.get(conv_id)
+
+    def get_user(self, user_id: str) -> hangups.user.User:
+        return self._user_list.get_user(user_id)
+
+    def get_random_user(self, conv_id: str) -> hangups.user.User:
+        conv = self.get_conv(conv_id)
         user = random.choice(conv.users)
         while user.is_self:
             user = random.choice(conv.users)
-        await self._remove_user(conv_id, user.id_.gaia_id)
+        return user
 
     def _print_convs(self) -> None:
         convs = self._conv_list.get_all(include_archived=True)

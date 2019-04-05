@@ -17,12 +17,16 @@ class AlienHandler(Handler):
     def _send(self, conv_id, msg) -> None:
         self._bot.send_message(conv_id, msg)
 
-    def _respond(self, text: str, tokens: [str], conv_id, sender):
+    def _respond(self, text: str, tokens: [str], conv_id: str, sender):
 
         if utils.match_one(tokens[0], ['hi', 'hello']):
             return self._send(conv_id, f'Greetings {sender.first_name}')
         if utils.match_one(tokens[0], ['greetings']):
             return self._send(conv_id, f'Hi {sender.first_name}')
+
+        if utils.match(tokens[0], ['who']):
+            user = self._bot.get_random_user(conv_id)
+            return self._send(conv_id, user.full_name)
 
         choices = ['Yes', 'Affirmative', 'No', 'Negatory', 'Maybe', 'Perhaps']
         qs = ['should', 'will', 'can', 'do', 'are', 'is', 'did']
@@ -47,7 +51,7 @@ class AlienHandler(Handler):
         if not isinstance(event, hangups.ChatMessageEvent):
             return
         text: str = event.text.lower()
-        sender = self._bot._user_list.get_user(event.user_id)
+        sender = self._bot.get_user(event.user_id)
         if 'alien tami' in text and self._check_sender(sender):
             text = text.replace('alien tami', '')
             text = text.translate(str.maketrans('', '', string.punctuation))
