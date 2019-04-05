@@ -19,21 +19,16 @@ class AlienHandler(Handler):
 
     def _respond(self, text: str, tokens: [str], conv_id, sender):
 
-        def has(txt, keys):
-            for key in keys:
-                if key in txt:
-                    return True
-            return False
-
-        if has(tokens, ['hi', 'hello']):
+        if utils.match_one(tokens[0], ['hi', 'hello']):
             return self._send(conv_id, f'Greetings {sender.first_name}')
-        if 'greetings' in tokens:
+        if utils.match_one(tokens[0], ['greetings']):
             return self._send(conv_id, f'Hi {sender.first_name}')
 
         choices = ['Yes', 'Affirmative', 'No', 'Negatory', 'Maybe', 'Perhaps']
         qs = ['should', 'will', 'can', 'do', 'are', 'is', 'did']
-        # Greater than three so 'alien tami will' is invalid
-        if len(tokens) > 3 and has(tokens, qs):
+        if utils.match(tokens, qs):
+            if len(tokens) == 1:
+                return self._send(conv_id, 'Please ask a full question bitch')
             return self._send(conv_id, random.choice(choices))
 
     def _check_sender(self, sender) -> bool:
@@ -59,4 +54,5 @@ class AlienHandler(Handler):
             text = text.strip()
             tokens = text.split(' ')
             logging.debug(f'processed: {tokens}')
-            self._respond(tokens, text, event.conversation_id, sender)
+            if len(tokens) > 0:
+                self._respond(text, tokens, event.conversation_id, sender)
